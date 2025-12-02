@@ -77,10 +77,7 @@ impl Scanner {
             }
         });
 
-        let mut result = Arc::try_unwrap(projects)
-            .unwrap()
-            .into_inner()
-            .unwrap();
+        let mut result = Arc::try_unwrap(projects).unwrap().into_inner().unwrap();
 
         // プロジェクト名でソート
         result.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
@@ -100,7 +97,7 @@ impl Scanner {
         // ignore クレートを使用してウォーク
         let walker = WalkBuilder::new(root)
             .max_depth(Some(self.max_depth))
-            .hidden(false)  // 隠しディレクトリも探索（.git検出のため）
+            .hidden(false) // 隠しディレクトリも探索（.git検出のため）
             .git_ignore(true)
             .git_global(true)
             .git_exclude(true)
@@ -189,9 +186,9 @@ pub fn filter_projects<'a>(projects: &'a [Project], query: &str) -> Vec<&'a Proj
             let path_lower = p.path.to_string_lossy().to_lowercase();
 
             // すべてのクエリパートがマッチする必要がある
-            query_parts.iter().all(|part| {
-                name_lower.contains(part) || path_lower.contains(part)
-            })
+            query_parts
+                .iter()
+                .all(|part| name_lower.contains(part) || path_lower.contains(part))
         })
         .collect()
 }

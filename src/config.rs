@@ -115,12 +115,12 @@ impl Config {
 
         // 親ディレクトリを作成
         if let Some(parent) = config_path.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create config directory: {}", parent.display()))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create config directory: {}", parent.display())
+            })?;
         }
 
-        let content = toml::to_string_pretty(self)
-            .with_context(|| "Failed to serialize config")?;
+        let content = toml::to_string_pretty(self).with_context(|| "Failed to serialize config")?;
 
         fs::write(&config_path, content)
             .with_context(|| format!("Failed to write config file: {}", config_path.display()))?;
@@ -130,8 +130,8 @@ impl Config {
 
     /// 設定ファイルのパスを取得
     pub fn config_path() -> Result<PathBuf> {
-        let proj_dirs = ProjectDirs::from("", "", APP_NAME)
-            .context("Failed to determine config directory")?;
+        let proj_dirs =
+            ProjectDirs::from("", "", APP_NAME).context("Failed to determine config directory")?;
 
         Ok(proj_dirs.config_dir().join(CONFIG_FILE_NAME))
     }
@@ -140,8 +140,12 @@ impl Config {
     pub fn add_root_path(&mut self, path: &Path) -> Result<bool> {
         // パスを展開して正規化
         let expanded = expand_path(path)?;
-        let canonical = fs::canonicalize(&expanded)
-            .with_context(|| format!("Path does not exist or is not accessible: {}", expanded.display()))?;
+        let canonical = fs::canonicalize(&expanded).with_context(|| {
+            format!(
+                "Path does not exist or is not accessible: {}",
+                expanded.display()
+            )
+        })?;
 
         // 既に登録済みかチェック
         if self.root_paths.contains(&canonical) {

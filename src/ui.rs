@@ -17,10 +17,7 @@ pub fn select_project(projects: &[Project]) -> Result<Option<&Project>> {
     }
 
     // 表示用の文字列リストを作成
-    let items: Vec<String> = projects
-        .iter()
-        .map(|p| format_project_item(p))
-        .collect();
+    let items: Vec<String> = projects.iter().map(format_project_item).collect();
 
     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select a project")
@@ -107,11 +104,7 @@ pub fn print_root_paths(paths: &[std::path::PathBuf]) {
     for (i, path) in paths.iter().enumerate() {
         let path_display = shorten_home_path(&path.to_string_lossy());
         let exists = path.exists();
-        let status = if exists {
-            "✓".green()
-        } else {
-            "✗".red()
-        };
+        let status = if exists { "✓".green() } else { "✗".red() };
 
         println!("  {} {}. {}", status, i + 1, path_display);
     }

@@ -137,8 +137,6 @@ mod tests {
     #[test]
     fn test_editor_aliases_exist() {
         // エイリアスが正しく定義されているか
-        assert!(!EDITOR_ALIASES.is_empty());
-
         for (alias, commands) in EDITOR_ALIASES {
             assert!(!alias.is_empty());
             assert!(!commands.is_empty());

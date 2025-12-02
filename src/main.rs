@@ -150,7 +150,11 @@ fn cmd_config() -> Result<()> {
     println!();
     println!(
         "  Editor:      {}",
-        config.editor.as_deref().unwrap_or("(not set, using $EDITOR or 'code')").cyan()
+        config
+            .editor
+            .as_deref()
+            .unwrap_or("(not set, using $EDITOR or 'code')")
+            .cyan()
     );
     println!("  Max depth:   {}", config.max_depth.to_string().cyan());
     println!(
