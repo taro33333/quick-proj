@@ -1,0 +1,210 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ビルドジョブ
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/quick-proj dist/quick-proj-${{ matrix.target }}
+          chmod +x dist/quick-proj-${{ matrix.target }}
+
+      - name: Prepare artifact (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir dist
+          copy target\${{ matrix.target }}\release\quick-proj.exe dist\quick-proj-${{ matrix.target }}.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-proj-${{ matrix.target }}
+          path: dist/
+
+  # リリース作成
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure
+        run: ls -laR artifacts/
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp artifacts/quick-proj-x86_64-unknown-linux-gnu/quick-proj-x86_64-unknown-linux-gnu release/quick-proj-linux-amd64
+          cp artifacts/quick-proj-x86_64-apple-darwin/quick-proj-x86_64-apple-darwin release/quick-proj-darwin-amd64
+          cp artifacts/quick-proj-aarch64-apple-darwin/quick-proj-aarch64-apple-darwin release/quick-proj-darwin-arm64
+          cp artifacts/quick-proj-x86_64-pc-windows-msvc/quick-proj-x86_64-pc-windows-msvc.exe release/quick-proj-windows-amd64.exe
+          chmod +x release/quick-proj-linux-amd64 release/quick-proj-darwin-amd64 release/quick-proj-darwin-arm64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Install git-cliff
+        run: |
+          curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.4.0/git-cliff-2.4.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          sudo mv git-cliff-2.4.0/git-cliff /usr/local/bin/
+
+      - name: Generate release notes
+        id: changelog
+        run: |
+          git fetch --unshallow --tags || true
+          CHANGELOG=$(git-cliff --config cliff.toml --latest --strip header 2>/dev/null || echo "Release v${{ steps.get_version.outputs.version }}")
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          body: ${{ steps.changelog.outputs.content }}
+          files: |
+            release/quick-proj-linux-amd64
+            release/quick-proj-darwin-amd64
+            release/quick-proj-darwin-arm64
+            release/quick-proj-windows-amd64.exe
+            release/checksums.txt
+
+  # Homebrew Formula 更新
+  homebrew:
+    name: Update Homebrew Formula
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download checksums
+        run: |
+          curl -sL "https://github.com/taro33333/quick-proj/releases/download/v${{ needs.release.outputs.version }}/checksums.txt" -o checksums.txt
+          cat checksums.txt
+
+      - name: Extract SHA256
+        id: sha
+        run: |
+          echo "linux=$(grep 'quick-proj-linux-amd64' checksums.txt | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_amd64=$(grep 'quick-proj-darwin-amd64' checksums.txt | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_arm64=$(grep 'quick-proj-darwin-arm64' checksums.txt | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v6
+        with:
+          repository: taro33333/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Formula
+        run: |
+          cat > homebrew-tap/quick-proj.rb << 'EOF'
+          class QuickProj < Formula
+            desc "A fast project launcher with fuzzy search for developers"
+            homepage "https://github.com/taro33333/quick-proj"
+            version "${{ needs.release.outputs.version }}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/taro33333/quick-proj/releases/download/v${{ needs.release.outputs.version }}/quick-proj-darwin-arm64"
+                sha256 "${{ steps.sha.outputs.darwin_arm64 }}"
+
+                def install
+                  bin.install "quick-proj-darwin-arm64" => "quick-proj"
+                end
+              end
+
+              on_intel do
+                url "https://github.com/taro33333/quick-proj/releases/download/v${{ needs.release.outputs.version }}/quick-proj-darwin-amd64"
+                sha256 "${{ steps.sha.outputs.darwin_amd64 }}"
+
+                def install
+                  bin.install "quick-proj-darwin-amd64" => "quick-proj"
+                end
+              end
+            end
+
+            on_linux do
+              on_intel do
+                url "https://github.com/taro33333/quick-proj/releases/download/v${{ needs.release.outputs.version }}/quick-proj-linux-amd64"
+                sha256 "${{ steps.sha.outputs.linux }}"
+
+                def install
+                  bin.install "quick-proj-linux-amd64" => "quick-proj"
+                end
+              end
+            end
+
+            test do
+              system "#{bin}/quick-proj", "--version"
+            end
+          end
+          EOF
+
+      - name: Commit and Push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add quick-proj.rb
+          git commit -m "Update quick-proj to v${{ needs.release.outputs.version }}" || exit 0
+          git push

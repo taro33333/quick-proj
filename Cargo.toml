@@ -1,0 +1,51 @@
+[package]
+name = "quick-proj"
+version = "0.1.0"
+edition = "2021"
+authors = ["taro33333"]
+description = "A fast project launcher with fuzzy search for developers"
+license = "MIT"
+readme = "README.md"
+keywords = ["cli", "project-launcher", "fuzzy-search", "developer-tools"]
+categories = ["command-line-utilities", "development-tools"]
+repository = "https://github.com/taro33333/quick-proj"
+rust-version = "1.74.0"
+
+[dependencies]
+# CLI argument parsing with derive macro
+clap = { version = "4.4", features = ["derive"] }
+
+# Error handling with context
+anyhow = "1.0"
+
+# Serialization/Deserialization
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+# OS-specific directories
+directories = "5.0"
+
+# Directory traversal (fast, respects .gitignore)
+ignore = "0.4"
+
+# Parallel processing
+rayon = "1.10"
+
+# Interactive UI
+dialoguer = { version = "0.11", features = ["fuzzy-select"] }
+console = "0.15"
+
+# Colored output
+colored = "2.1"
+
+# Shell expansion (for ~ paths)
+shellexpand = "3.1"
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
