@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["cli", "project-launcher", "fuzzy-search", "developer-tools"]
 categories = ["command-line-utilities", "development-tools"]
 repository = "https://github.com/taro33333/quick-proj"
-rust-version = "1.74.0"
+rust-version = "1.82.0"
 
 [dependencies]
 # CLI argument parsing with derive macro
