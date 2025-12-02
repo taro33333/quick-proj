@@ -30,8 +30,7 @@ quick-proj
 ### Homebrew（macOS / Linux）
 
 ```bash
-brew tap taro33333/tap
-brew install quick-proj
+brew install taro33333/tap/quick-proj
 ```
 
 ### GitHub Releases
