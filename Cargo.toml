@@ -26,7 +26,7 @@ toml = "0.8"
 directories = "5.0"
 
 # Directory traversal (fast, respects .gitignore)
-ignore = "0.4.23"
+ignore = "=0.4.22"
 
 # Parallel processing
 rayon = "1.10"
