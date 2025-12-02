@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["cli", "project-launcher", "fuzzy-search", "developer-tools"]
 categories = ["command-line-utilities", "development-tools"]
 repository = "https://github.com/taro33333/quick-proj"
-rust-version = "1.74.0"
+# Uses latest stable Rust (dependencies require Edition 2024 support)
 
 [dependencies]
 # CLI argument parsing with derive macro
@@ -26,7 +26,7 @@ toml = "0.8"
 directories = "5.0"
 
 # Directory traversal (fast, respects .gitignore)
-ignore = "=0.4.22"
+ignore = "0.4"
 
 # Parallel processing
 rayon = "1.10"

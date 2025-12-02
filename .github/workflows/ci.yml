@@ -78,16 +78,3 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --no-deps --all-features
-
-  # 最小サポートRustバージョン (MSRV) チェック
-  msrv:
-    name: MSRV (1.74.0)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@1.74.0
-      - name: Remove Cargo.lock for MSRV compatibility
-        run: rm -f Cargo.lock
-      - uses: Swatinem/rust-cache@v2
-      - name: Check MSRV
-        run: cargo check --all-features

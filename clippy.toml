@@ -11,4 +11,4 @@ too-many-lines-threshold = 100
 too-many-arguments-threshold = 7
 
 # MSRV (Minimum Supported Rust Version)
-msrv = "1.74.0"
+# Uses latest stable Rust
